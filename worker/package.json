@@ -1,0 +1,11 @@
+{
+  "name": "leetc-proxy",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --remote",
+    "dev:local": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "4.162.0"
+  }
+}
