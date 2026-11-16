@@ -1,7 +1,9 @@
 #!/bin/bash
-# Stage 0 check: problem query, Run, Submit through the Worker. Usage: ./verify.sh [base_url]
-# Submit really submits a correct Two Sum (Python3) to your account.
+# Worker check: guards, problem query, Run, and (with SUBMIT=1) a real Two Sum submission.
+# Usage: ./verify.sh [base_url]   token is read from .dev.vars unless ACCESS_TOKEN is set.
 BASE=${1:-http://localhost:8787}
+TOKEN=${ACCESS_TOKEN:-$(grep '^ACCESS_TOKEN=' "$(dirname "$0")/.dev.vars" | cut -d= -f2-)}
+AUTH="Authorization: Bearer $TOKEN"
 SLUG=two-sum
 CODE='class Solution:
     def twoSum(self, nums, target):
@@ -12,32 +14,35 @@ CODE='class Solution:
             seen[n] = i'
 
 poll() {
-  for _ in $(seq 1 20); do
+  for _ in $(seq 1 30); do
     sleep 1
-    RESULT=$(curl -s "$BASE/check/$1?slug=$SLUG")
-    STATE=$(echo "$RESULT" | jq -r '(.body | objects | .state) // empty')
-    [ "$STATE" = "SUCCESS" ] && break
-    [ -z "$STATE" ] && break
+    RESULT=$(curl -s -H "$AUTH" "$BASE/check/$1?slug=$SLUG")
+    [ "$(echo "$RESULT" | jq -r '.state // .error')" != "PENDING" ] && [ "$(echo "$RESULT" | jq -r '.state // .error')" != "STARTED" ] && break
   done
-  echo "$RESULT" | jq '{status, cfMitigated, state: .body.state, status_msg: .body.status_msg, code_answer: .body.code_answer, expected: .body.expected_code_answer, runtime: .body.status_runtime, memory: .body.status_memory, error: .body.full_compile_error}'
+  echo "$RESULT" | jq -c '{state, status_msg, correct_answer, status_runtime, status_memory, error}'
 }
 
-echo "== 1. GraphQL problem =="
-PROBLEM=$(curl -s "$BASE/problem/$SLUG")
-echo "$PROBLEM" | jq '{status, server, cfMitigated, questionId: .body.data.question.questionId, langs: [.body.data.question.codeSnippets[]?.langSlug] | length, exampleTestcases: .body.data.question.exampleTestcases, contentChars: (.body.data.question.content | length)}'
-QID=$(echo "$PROBLEM" | jq -r '.body.data.question.questionId')
-TESTS=$(echo "$PROBLEM" | jq -r '.body.data.question.exampleTestcases')
+echo "== guards (expect 401, 403) =="
+curl -s -o /dev/null -w "no token: %{http_code}\n" "$BASE/problem/$SLUG"
+curl -s -o /dev/null -w "bad origin: %{http_code}\n" -H "$AUTH" -H 'Origin: https://evil.example' "$BASE/problem/$SLUG"
 
-echo "== 2. Run (interpret_solution) =="
-RUN=$(jq -n --arg q "$QID" --arg c "$CODE" --arg d "$TESTS" '{lang:"python3", question_id:$q, typed_code:$c, data_input:$d}' \
-  | curl -s -X POST "$BASE/run/$SLUG" -H 'Content-Type: application/json' --data-binary @-)
-echo "$RUN" | jq '{status, server, cfMitigated, location, body: (.body | if type=="string" then .[0:300] else . end)}'
-RUN_ID=$(echo "$RUN" | jq -r '(.body | objects | .interpret_id) // empty')
+echo "== problem =="
+PROBLEM=$(curl -s -H "$AUTH" "$BASE/problem/$SLUG")
+echo "$PROBLEM" | jq -c '{questionId, title, langs: [.codeSnippets[]?.langSlug], error}'
+QID=$(echo "$PROBLEM" | jq -r '.questionId')
+TESTS=$(echo "$PROBLEM" | jq -r '.exampleTestcases')
+
+echo "== run =="
+RUN=$(jq -n --arg q "$QID" --arg c "$CODE" --arg t "$TESTS" '{lang:"python3", questionId:$q, code:$c, testcases:$t}' \
+  | curl -s -X POST -H "$AUTH" -H 'Content-Type: application/json' --data-binary @- "$BASE/run/$SLUG")
+echo "$RUN"
+RUN_ID=$(echo "$RUN" | jq -r '.id // empty')
 [ -n "$RUN_ID" ] && poll "$RUN_ID"
 
-echo "== 3. Submit =="
-SUBMIT=$(jq -n --arg q "$QID" --arg c "$CODE" '{lang:"python3", question_id:$q, typed_code:$c}' \
-  | curl -s -X POST "$BASE/submit/$SLUG" -H 'Content-Type: application/json' --data-binary @-)
-echo "$SUBMIT" | jq '{status, server, cfMitigated, location, body: (.body | if type=="string" then .[0:300] else . end)}'
-SUBMIT_ID=$(echo "$SUBMIT" | jq -r '(.body | objects | .submission_id) // empty')
+[ "$SUBMIT" = "1" ] || exit 0
+echo "== submit =="
+SUBMITTED=$(jq -n --arg q "$QID" --arg c "$CODE" '{lang:"python3", questionId:$q, code:$c}' \
+  | curl -s -X POST -H "$AUTH" -H 'Content-Type: application/json' --data-binary @- "$BASE/submit/$SLUG")
+echo "$SUBMITTED"
+SUBMIT_ID=$(echo "$SUBMITTED" | jq -r '.id // empty')
 [ -n "$SUBMIT_ID" ] && poll "$SUBMIT_ID"

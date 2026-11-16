@@ -1,3 +1,7 @@
 name = "leetc-proxy"
 main = "src/index.ts"
 compatibility_date = "2025-09-01"
+
+[vars]
+# Pages origin + local Vite dev (5173) and preview (4173) servers.
+ALLOWED_ORIGINS = "https://hellonobb.github.io,http://localhost:5173,http://localhost:4173"
