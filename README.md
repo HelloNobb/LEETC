@@ -107,13 +107,18 @@ If the access token leaks, run `npx wrangler secret put ACCESS_TOKEN` with a new
 ## PROBLEMS.md format
 
 ```
-## W7 (26-11-w3)
+## W7 (26-11-w2) - LeetCode
+* [Easy] 70. Climbing Stairs
+* (보너스) [Medium] 322. Coin Change
 - [Medium] Two Sum https://leetcode.com/problems/two-sum/
 ```
 
 - `##` heading = one week. The **last** section is "this week" for the progress bar.
-- The slug comes from the link. List lines that don't match are skipped and listed as a warning at the bottom of the list screen.
+- The link is optional. Without it, the slug is made from the title (`70. Climbing Stairs` → `climbing-stairs`). Add a link if a problem doesn't open (rare titles with unusual punctuation).
+- A `(보너스)`-style prefix marks a bonus problem: listed, but not counted in the weekly goal.
+- Old `[level N]` (Programmers) lines are ignored. Other list lines that don't match are listed as a warning at the bottom of the list screen.
 - Any other problem can be opened by typing its slug (or pasting its link) into the box on the list screen.
+- The list is fetched with revalidation, but GitHub's raw CDN can still serve the old file for up to ~5 minutes after a push.
 
 ## Local development
 

@@ -21,10 +21,15 @@ Personal PWA for solving LeetCode on a phone. Problem list comes from `HelloNobb
 ## PROBLEMS.md format
 
 ```
-## W7 (26-11-w3)
+## W7 (26-11-w2) - LeetCode
+* [Easy] 70. Climbing Stairs
+* (보너스) [Medium] 322. Coin Change
 - [Medium] Two Sum https://leetcode.com/problems/two-sum/
 ```
-Slug comes from the link. Lines that fail to parse are skipped and shown as a warning.
+- `##` heading = week; text after the name is the label. Last section = this week.
+- Slug: from the link if present, else derived from the title (`slugFromTitle`, only for Easy/Medium/Hard).
+- `(...)` prefix = bonus: shown, not counted toward the weekly goal.
+- `[level N]` lines (old Programmers weeks) are skipped silently. Other list lines that fail are shown as warnings.
 
 ## LeetCode API facts (verified 2026-11-16 from Cloudflare edge)
 

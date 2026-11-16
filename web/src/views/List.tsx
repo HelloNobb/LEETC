@@ -12,7 +12,8 @@ export function List() {
   const [slugInput, setSlugInput] = useState('');
 
   useEffect(() => {
-    fetch(PROBLEMS_URL)
+    // no-cache: raw.githubusercontent sends max-age=300, so an edited list would otherwise stay stale in the browser.
+    fetch(PROBLEMS_URL, { cache: 'no-cache' })
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.text();
@@ -31,8 +32,10 @@ export function List() {
 
   const weeks = result?.weeks ?? [];
   const thisWeek = weeks.at(-1);
-  const done = thisWeek?.problems.filter((problem) => accepted[problem.slug]).length ?? 0;
-  const total = thisWeek?.problems.length ?? 0;
+  // Bonus problems are extra: they don't count toward the weekly goal.
+  const goal = thisWeek?.problems.filter((problem) => !problem.bonus) ?? [];
+  const done = goal.filter((problem) => accepted[problem.slug]).length;
+  const total = goal.length;
   // Newest first; old weeks with no parsable problems are hidden, the current week always shows.
   const shownWeeks = [...weeks].reverse().filter((week, index) => index === 0 || week.problems.length > 0);
   const settingsMissing = !loadSettings().token;
@@ -86,7 +89,10 @@ export function List() {
               <li key={problem.slug}>
                 <a href={`#/p/${problem.slug}`} class="problem-row">
                   <span class={`level level-${problem.difficulty.toLowerCase()}`}>{problem.difficulty}</span>
-                  <span class="problem-title">{problem.title}</span>
+                  <span class="problem-title">
+                    {problem.bonus && <span class="bonus">보너스</span>}
+                    {problem.title}
+                  </span>
                   {accepted[problem.slug] && <span class="check">✓</span>}
                 </a>
               </li>

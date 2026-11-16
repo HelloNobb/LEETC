@@ -186,6 +186,15 @@ textarea {
   flex: 1;
 }
 
+.bonus {
+  font-size: 11px;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0 4px;
+  margin-right: 6px;
+}
+
 .check {
   color: var(--good);
   font-weight: 700;
