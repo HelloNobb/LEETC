@@ -1,14 +1,23 @@
 import { useState } from 'preact/hooks';
-import { loadSettings, saveSettings } from '../api';
+import { errorMessage, fetchQuestion, loadSettings, saveSettings } from '../api';
 
 export function Settings() {
   const [settings, setSettings] = useState(loadSettings);
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState('');
 
-  function save(event: Event) {
+  async function save(event: Event) {
     event.preventDefault();
-    saveSettings({ workerUrl: settings.workerUrl.trim(), token: settings.token.trim() });
-    setSaved(true);
+    const trimmed = { workerUrl: settings.workerUrl.trim(), token: settings.token.replace(/\s/g, '') };
+    saveSettings(trimmed);
+    setSettings(trimmed);
+    // Check right away so a wrong token shows up here, not later on Run.
+    setStatus('저장함. 연결 확인 중…');
+    try {
+      await fetchQuestion('two-sum');
+      setStatus('저장함. Worker 연결 확인됨.');
+    } catch (error) {
+      setStatus(`저장함. 하지만 연결 실패: ${errorMessage(error)}`);
+    }
   }
 
   return (
@@ -30,17 +39,22 @@ export function Settings() {
           />
         </label>
         <label>
-          접근 토큰
+          접근 토큰 ({settings.token.replace(/\s/g, '').length}/32자)
+          {/* Plain text, not password: iOS offers to replace password fields with a generated "strong password". */}
           <input
-            type="password"
+            type="text"
             value={settings.token}
             onInput={(event) => setSettings({ ...settings, token: event.currentTarget.value })}
             autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck={false}
+            class="token-input"
           />
         </label>
-        <p class="muted">이 기기에만 저장됩니다. LeetCode 쿠키는 여기 넣지 않습니다(Worker secret에만 있음).</p>
+        <p class="muted">이 기기에 저장돼서 한 번만 넣으면 됩니다. LeetCode 쿠키는 여기 넣지 않습니다(Worker secret에만 있음).</p>
         <button>저장</button>
-        {saved && <p class="notice">저장했습니다.</p>}
+        {status && <p class="notice">{status}</p>}
       </form>
     </main>
   );
