@@ -35,6 +35,23 @@ Slug comes from the link. Lines that fail to parse are skipped and shown as a wa
 - `status_code`: 10 Accepted, 15 Runtime Error (`runtime_error`, `full_runtime_error`), 20 Compile Error (`compile_error`, `full_compile_error`).
 - Rapid back-to-back Runs got a non-JSON reply once (likely rate limit, not confirmed). Client must handle non-JSON errors.
 
+## Worker API (what web calls)
+
+All need `Authorization: Bearer <ACCESS_TOKEN>`. Errors are `{error: TOKEN|AUTH|RATE_LIMIT|BLOCKED|NOT_FOUND|UPSTREAM}` (DECISIONS D6).
+- `GET /problem/:slug` → question (codeSnippets filtered to python3/cpp)
+- `POST /run/:slug` `{lang, questionId, code, testcases}` / `POST /submit/:slug` `{lang, questionId, code}` → `{id}`
+- `GET /check/:id?slug=` → raw LeetCode check payload
+
+## Web files
+
+- `src/api.ts` Worker calls, error messages, polling (`judge`). `src/store.ts` IndexedDB keys. `src/problems.ts` parser (+ `node --test`).
+- `src/views/`: `List`, `Settings`, `Problem` (tabs), `Editor` (CodeMirror + shortcut bar, autosave), `Result`.
+- Settings (Worker URL, token) in localStorage; problem cache, code, Accepted records in IndexedDB.
+
+## Commands
+
+- `cd web && npm test` / `npm run build` (tsc + vite). `cd worker && npm run dev:local` + `./verify.sh`.
+
 ## Code rules
 
 - Comments: `//` one line, "why" only. No JSDoc blocks. Delete dead code.
